@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
 const mongoose = require("mongoose");
@@ -10,18 +11,24 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const uploadMiddleware = multer({ dest: 'uploads/' });
 const fs = require('fs');
+const connectDB = require("./config/db"); // bring in the mongoose library
+const colors = require("colors");
 
 
+
+
+const port = process.env.PORT || 3030; //Create a variable for storing port where our server will run.
+
+// Call the mongoose DB by running the connectDB function
+connectDB();
 
 const salt = bcrypt.genSaltSync(10);
-const secret = 'asdfe45we45w345wegw345werjktjwertkj';
 
 app.use(cors({credentials:true,origin:'http://localhost:3000'}));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(__dirname + '/uploads'));
 
-mongoose.connect('mongodb+srv://blog:RD8paskYC8Ayj09u@cluster0.pflplid.mongodb.net/?retryWrites=true&w=majority');
 
 app.post('/register', async (req,res) => {
   const {username,password} = req.body;
@@ -43,7 +50,7 @@ app.post('/login', async (req,res) => {
   const passOk = bcrypt.compareSync(password, userDoc.password);
   if (passOk) {
     // logged in
-    jwt.sign({username,id:userDoc._id}, secret, {}, (err,token) => {
+    jwt.sign({username,id:userDoc._id}, process.env.secret, {}, (err,token) => {
       if (err) throw err;
       res.cookie('token', token).json({
         id:userDoc._id,
@@ -57,7 +64,7 @@ app.post('/login', async (req,res) => {
 
 app.get('/profile', (req,res) => {
   const {token} = req.cookies;
-  jwt.verify(token, secret, {}, (err,info) => {
+  jwt.verify(token, process.env.secret, {}, (err,info) => {
     if (err) throw err;
     res.json(info);
   });
@@ -75,7 +82,7 @@ app.post('/post', uploadMiddleware.single('file'), async (req,res) => {
   fs.renameSync(path, newPath);
 
   const {token} = req.cookies;
-  jwt.verify(token, secret, {}, async (err,info) => {
+  jwt.verify(token, process.env.secret, {}, async (err,info) => {
     if (err) throw err;
     const {title,summary,content} = req.body;
     const postDoc = await Post.create({
@@ -101,7 +108,7 @@ app.put('/post',uploadMiddleware.single('file'), async (req,res) => {
   }
 
   const {token} = req.cookies;
-  jwt.verify(token, secret, {}, async (err,info) => {
+  jwt.verify(token, process.env.secret, {}, async (err,info) => {
     if (err) throw err;
     const {id,title,summary,content} = req.body;
     const postDoc = await Post.findById(id);
@@ -134,7 +141,8 @@ app.get('/post/:id', async (req, res) => {
   const {id} = req.params;
   const postDoc = await Post.findById(id).populate('author', ['username']);
   res.json(postDoc);
-})
+});
 
-app.listen(4000);
+// Then with that app variable, we can call listen
+app.listen(port, () => console.log(`Server started on port ${port}`));
 //

@@ -14,6 +14,8 @@ import EditPost from "./pages/EditPost";
 function App() {
   return (
     <UserContextProvider>
+      <Header />
+      <Post />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<IndexPage />} />
